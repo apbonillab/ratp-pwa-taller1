@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'static-cache-v1';
+const CACHE_NAME = 'cache';
 const SHELL_CACHE_NAME = 'shell-cache';
 
 const FILES_TO_CACHE = [
@@ -8,7 +8,8 @@ const FILES_TO_CACHE = [
   '/scripts/app.js',
   '/images/ic_add_white_24px.svg',
   '/images/ic_refresh_white_24px.svg',
-  '/styles/inline.css'
+  '/styles/inline.css',
+  '/scripts/localforage.min.js'
 ];
 
 self.addEventListener('install', (evt) => {
@@ -39,7 +40,7 @@ self.addEventListener('activate', (evt) => {
 });
 
 self.addEventListener('fetch', (evt) => {
-if (evt.request.url.includes('/forecast/')) {
+if (evt.request.url.includes('/schedules/')) {
   console.log('[Service Worker] Fetch (data)', evt.request.url);
   evt.respondWith(
       caches.open(FILES_TO_CACHE).then((cache) => {
