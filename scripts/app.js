@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+   
 
     var app = {
         isLoading: true,
@@ -9,7 +10,13 @@
         cardTemplate: document.querySelector('.cardTemplate'),
         container: document.querySelector('.main'),
         addDialog: document.querySelector('.dialog-container')
+
     };
+
+    localforage.config({
+        driver: localforage.IndexedDB,
+        name: 'taller1'
+    });
 
 
     /*****************************************************************************
@@ -40,6 +47,7 @@
         }
         app.getSchedule(key, label);
         app.selectedTimetables.push({key: key, label: label});
+        savePreferences(key,label);
         app.toggleAddDialog(false);
     });
 
@@ -111,18 +119,24 @@
 
 
     app.getSchedule = function (key, label) {
-        var url = 'https://api-ratp.pierre-grimaud.fr/v3/schedules/' + key;
+        var result;
+        var response =  getFromCache(key).then((cache)=>{
+            if(cache != null){
+                result = mapping(cache,key,label);
+                app.updateTimetableCard(result);
+            }
+        });       
+     
+
+        var url = 'https://api-ratp.pierre-grimaud.fr/v4/schedules/' + key;
 
         var request = new XMLHttpRequest();
         request.onreadystatechange = function () {
             if (request.readyState === XMLHttpRequest.DONE) {
                 if (request.status === 200) {
+                    window.apiResponseTime = performance.now();                   
                     var response = JSON.parse(request.response);
-                    var result = {};
-                    result.key = key;
-                    result.label = label;
-                    result.created = response._metadata.date;
-                    result.schedules = response.result.schedules;
+                    var result = mapping(response,key,label);
                     app.updateTimetableCard(result);
                 }
             } else {
@@ -161,6 +175,7 @@
                 message: '2 mn'
             },
             {
+
                 message: '5 mn'
             }
         ]
@@ -168,7 +183,14 @@
 
     };
 
-
+    function mapping(response,key,label){
+        var result = {};
+        result.key = key;
+        result.label = label;
+        result.created = response._metadata.date;
+        result.schedules = response.result.schedules;
+        return result;
+    }
     /************************************************************************
      *
      * Code required to start the app
@@ -180,8 +202,53 @@
      *   SimpleDB (https://gist.github.com/inexorabletash/c8069c042b734519680c)
      ************************************************************************/
 
-    app.getSchedule('metros/1/bastille/A', 'Bastille, Direction La Défense');
-    app.selectedTimetables = [
-        {key: initialStationTimetable.key, label: initialStationTimetable.label}
-    ];
+    function initLoad(){
+        app.getSchedule('metros/1/bastille/A', 'Bastille, Direction La Défense');
+        app.selectedTimetables = [
+            {key: initialStationTimetable.key, label: initialStationTimetable.label}
+        ];
+        savePreferences();
+    }
+  
+    function savePreferences(){
+            localforage.setItem('preferencias',JSON.stringify(app.selectedTimetables)).then(function(value){
+                console.log('ok save preferencias'+JSON.stringify(app.selectedTimetables));
+        });
+    }
+ 
+    localforage.getItem('preferencias').then(function(value) {
+        
+        app.selectedTimetables = value;
+        
+        if (app.selectedTimetables) {
+            app.selectedTimetables = JSON.parse(app.selectedTimetables);
+            app.selectedTimetables.forEach(function(timetable) {
+                app.getSchedule( timetable.key, timetable.label);
+            });
+        } else {
+            initLoad();
+        }
+    }).catch(function (err) {
+        console.log('errrorr'+err);
+        initLoad();
+    });
+
+
+    
+    function getFromCache(value) {       
+    if ('caches' in window) {
+      var url = 'https://api-ratp.pierre-grimaud.fr/v4/schedules/' + value;
+      return caches.match(url)
+          .then((response) => {
+            if (response) {
+              return response.json();
+            }
+            return null;
+          })
+          .catch((err) => {
+            console.error('Error getting data from cache', err);
+            return null;
+          });
+        }
+      }
 })();
