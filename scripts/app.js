@@ -135,7 +135,7 @@
         request.onreadystatechange = function () {
             if (request.readyState === XMLHttpRequest.DONE) {
                 if (request.status === 200) {
-                    window.apiResponseTime = performance.now();                   
+                    window.responseApi = performance.now();                   
                     var response = JSON.parse(request.response);
                     var result = mapping(response,key,label);
                     app.updateTimetableCard(result);
