@@ -2,7 +2,7 @@
 
 const Gatherer = require('lighthouse').Gatherer;
 
-class TimeToApiMetro extends Gatherer {
+class TimeApi extends Gatherer {
     afterPass(options) {
         const driver = options.driver;
 
@@ -17,4 +17,4 @@ class TimeToApiMetro extends Gatherer {
     }
 }
 
-module.exports = TimeToApiMetro;
+module.exports = TimeApi;
